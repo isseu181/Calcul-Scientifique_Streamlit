@@ -179,10 +179,10 @@ def home_page():
     cols = st.columns(4)
     team = [
         {"name": "Adama GUEYE", "role": "Responsable "},
-        {"name": "Ahmadou Koumé SENE"},
-        {"name": "Ndèye SARR"},
-        {"name": "Seydina Mouhamed Lybass POUYE"},
-        {"name": "Alpha BA"}
+        {"name": "Ahmadou Koumé SENE", "role": " "},
+        {"name": "Ndèye SARR", "role": " "},
+        {"name": "Seydina Mouhamed Lybass POUYE", "role": " "},
+        {"name": "Alpha BA", "role": " "}
     ]
     
     for i, member in enumerate(team):
