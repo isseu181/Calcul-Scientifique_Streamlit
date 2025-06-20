@@ -1,266 +1,220 @@
 import streamlit as st
-from streamlit_extras.colored_header import colored_header
-from streamlit_extras.stylable_container import stylable_container
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.integrate import quad, solve_ivp
+from scipy.interpolate import interp1d
+from scipy.signal import TransferFunction, step, bode
+from scipy.optimize import fsolve
+import pulp
+import sympy as sp
+from sympy import symbols, integrate, pi, cos, sin, simplify, sympify, lambdify
 
-# Configuration de la page
-st.set_page_config(
-    page_title="Application de Calcul Scientifique",
-    page_icon="🔬",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="CalculLAB Web", layout="centered", page_icon="🔬")
 
-# CSS personnalisé
-st.markdown("""
-    <style>
-        /* Fond de page */
-        [data-testid="stAppViewContainer"] {
-            background: linear-gradient(135deg, #0c1b33, #1a365d);
-            padding: 2rem;
-        }
-        
-        /* Conteneur principal */
-        .main-container {
-            background: rgba(13, 26, 50, 0.85);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 3rem;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(86, 180, 239, 0.2);
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        
-        /* Titre principal */
-        .main-title {
-            font-size: 2.8rem;
-            text-align: center;
-            background: linear-gradient(to right, #56b4ef, #2ecc71);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 1rem;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            font-weight: 700;
-        }
-        
-        /* Sous-titre */
-        .subtitle {
-            font-size: 1.2rem;
-            color: #a3c7f7;
-            text-align: center;
-            margin-bottom: 2rem;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
-            line-height: 1.6;
-        }
-        
-        /* Titres de section */
-        .section-title {
-            font-size: 2rem;
-            color: #56b4ef;
-            position: relative;
-            padding-left: 15px;
-            margin-bottom: 1.5rem;
-            border-bottom: 2px solid rgba(86, 180, 239, 0.3);
-            padding-bottom: 0.5rem;
-        }
-        
-        .section-title:before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 10%;
-            height: 80%;
-            width: 5px;
-            background: linear-gradient(to bottom, #56b4ef, #2ecc71);
-            border-radius: 10px;
-        }
-        
-        /* Sous-titre de section */
-        .subsection-title {
-            font-size: 1.6rem;
-            color: #2ecc71;
-            margin: 1.5rem 0 1rem 0;
-            padding-left: 1rem;
-        }
-        
-        /* Éléments de la liste */
-        .tool-item {
-            padding: 15px 20px;
-            margin-bottom: 15px;
-            background: rgba(40, 65, 105, 0.6);
-            border-radius: 12px;
-            font-size: 1.1rem;
-            border-left: 4px solid #56b4ef;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .tool-item:hover {
-            transform: translateX(10px);
-            background: rgba(50, 85, 135, 0.8);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .tool-item:before {
-            content: '➤';
-            margin-right: 15px;
-            color: #2ecc71;
-            font-size: 1.2rem;
-        }
-        
-        /* Séparateur */
-        .separator {
-            height: 2px;
-            background: linear-gradient(to right, transparent, #56b4ef, transparent);
-            margin: 2.5rem 0;
-        }
-        
-        /* Bouton Quitter */
-        .quit-btn {
-            display: block;
-            width: 200px;
-            margin: 2rem auto;
-            padding: 15px;
-            background: linear-gradient(to right, #e74c3c, #c0392b);
-            color: white;
-            text-align: center;
-            text-decoration: none;
-            border-radius: 50px;
-            font-weight: bold;
-            font-size: 1.1rem;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .quit-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 7px 20px rgba(231, 76, 60, 0.5);
-        }
-        
-        /* Animation atomique */
-        .atom-container {
-            display: flex;
-            justify-content: center;
-            margin: 2rem 0;
-        }
-        
-        /* Pied de page */
-        .footer {
-            text-align: center;
-            padding: 20px;
-            font-size: 0.9rem;
-            color: #7a9bc8;
-            border-top: 1px solid rgba(86, 180, 239, 0.2);
-            margin-top: 2rem;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .main-title {
-                font-size: 2.2rem;
-            }
-            
-            .section-title {
-                font-size: 1.8rem;
-            }
-            
-            .main-container {
-                padding: 2rem 1.5rem;
-            }
-        }
-    </style>
-""", unsafe_allow_html=True)
+# Variable d'état pour gérer la page actuelle
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "Accueil"
 
-# Animation atomique (SVG animé)
-atom_svg = """
-<svg width="150" height="150" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg" style="display: block; margin: 0 auto;">
-    <!-- Noyau -->
-    <circle cx="75" cy="75" r="12" fill="#2ecc71" filter="url(#glow)" />
-    
-    <!-- Orbite 1 -->
-    <g transform="rotate(0,75,75)">
-        <animateTransform attributeName="transform" type="rotate" from="0 75 75" to="360 75 75" dur="8s" repeatCount="indefinite"/>
-        <circle cx="75" cy="75" r="30" stroke="#56b4ef" stroke-width="2" fill="none" stroke-dasharray="4 4" opacity="0.7" />
-        <circle cx="105" cy="75" r="6" fill="#56b4ef" filter="url(#glow)" />
-    </g>
-    
-    <!-- Orbite 2 -->
-    <g transform="rotate(120,75,75)">
-        <animateTransform attributeName="transform" type="rotate" from="120 75 75" to="480 75 75" dur="12s" repeatCount="indefinite"/>
-        <circle cx="75" cy="75" r="45" stroke="#56b4ef" stroke-width="2" fill="none" stroke-dasharray="4 4" opacity="0.7" />
-        <circle cx="120" cy="75" r="6" fill="#56b4ef" filter="url(#glow)" />
-    </g>
-    
-    <!-- Orbite 3 -->
-    <g transform="rotate(240,75,75)">
-        <animateTransform attributeName="transform" type="rotate" from="240 75 75" to="600 75 75" dur="15s" repeatCount="indefinite"/>
-        <circle cx="75" cy="75" r="60" stroke="#56b4ef" stroke-width="2" fill="none" stroke-dasharray="4 4" opacity="0.7" />
-        <circle cx="135" cy="75" r="6" fill="#56b4ef" filter="url(#glow)" />
-    </g>
-    
-    <!-- Effet de lueur -->
-    <defs>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-            <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-        </filter>
-    </defs>
-</svg>
-"""
+# Définir les pages disponibles
+PAGES = {
+    "Accueil": "Accueil",
+    "Calcul d’intégrale": "Calcul d’intégrale",
+    "Interpolation": "Interpolation",
+    "Analyse de fonction de transfert": "Analyse de fonction de transfert",
+    "Équations différentielles": "Équations différentielles",
+    "Intégration numérique": "Intégration numérique",
+    "Systèmes linéaires": "Systèmes linéaires",
+    "Décomposition LU": "Décomposition LU",
+    "Applications Laser": "Applications Laser",
+    "Optimisation linéaire": "Optimisation linéaire",
+    "Séries de Fourier": "Séries de Fourier",
+    "Data Science": "Data Science",
+    "Gestion Énergétique": "Gestion Énergétique",
+    "Navier-Stokes": "Navier-Stokes",
+    "Numérisation": "Numérisation"
+}
 
-# Structure de la page
-with st.container():
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
-    
-    # En-tête
-    st.markdown('<h1 class="main-title">Bienvenue dans l\'Application de Calcul Scientifique</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle">Plateforme avancée pour la modélisation, la simulation et l\'analyse de données scientifiques complexes</p>', unsafe_allow_html=True)
-    
-    # Animation atomique
-    st.markdown('<div class="atom-container">', unsafe_allow_html=True)
-    st.markdown(atom_svg, unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Section Outils Data Science
-    st.markdown('<h2 class="section-title">Outils Data Science</h2>', unsafe_allow_html=True)
-    
-    # Sous-section Gestion Énergétique
-    st.markdown('<h3 class="subsection-title">Gestion Énergétique</h3>', unsafe_allow_html=True)
-    
-    # Liste des outils
-    tools = [
-        "Simulation: Laser",
-        "Equations: Navier-Stokes",
-        "Numérisation"
-    ]
-
-    for tool in tools:
-        st.markdown(f'<div class="tool-item">{tool}</div>', unsafe_allow_html=True)
-    
-    # Séparateur
-    st.markdown('<div class="separator"></div>', unsafe_allow_html=True)
-    
-    # Bouton Quitter
-    if st.button("Quitter l'Application", key="quit_button", use_container_width=True):
-        with st.spinner("Fermeture en cours..."):
-            # Animation de fermeture
-            st.balloons()
-            st.success("Application fermée avec succès!")
-            st.stop()
-    
-    # Pied de page
+# Page d'accueil
+def show_home_page():
     st.markdown("""
-        <div class="footer">
-            Application de Calcul Scientifique &copy; 2025 | Tous droits réservés
-        </div>
+    <style>
+    .big-font {
+        font-size:36px !important;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .button-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    .stButton>button {
+        width: 100%;
+        padding: 15px;
+        font-size: 18px;
+        border-radius: 10px;
+        background-color: #4e73df;
+        color: white;
+        border: none;
+        transition: all 0.3s;
+    }
+    .stButton>button:hover {
+        background-color: #2e59d9;
+        transform: scale(1.02);
+    }
+    .footer {
+        text-align: center;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+    </style>
     """, unsafe_allow_html=True)
     
-    st.markdown('</div>', unsafe_allow_html=True)  # Fermeture du conteneur principal
+    st.markdown('<p class="big-font">Bienvenue dans l\'Application de Calcul Scientifique</p>', unsafe_allow_html=True)
+    
+    with st.container():
+        st.markdown('<div class="button-container">', unsafe_allow_html=True)
+        
+        if st.button("Outils Data Science"):
+            st.session_state.current_page = "Data Science"
+        
+        if st.button("Gestion Énergétique"):
+            st.session_state.current_page = "Gestion Énergétique"
+        
+        if st.button("Simulation: Laser"):
+            st.session_state.current_page = "Applications Laser"
+        
+        if st.button("Equations: Navier-Stokes"):
+            st.session_state.current_page = "Navier-Stokes"
+        
+        if st.button("Numérisation"):
+            st.session_state.current_page = "Numérisation"
+        
+        if st.button("Quitter", key="quit"):
+            st.stop()
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="footer">🔬 CalculLAB - Plateforme Scientifique Complète</div>', unsafe_allow_html=True)
+
+# Barre latérale pour la navigation
+with st.sidebar:
+    st.title("🔬 CalculLAB")
+    selected_page = st.selectbox(
+        "Navigation",
+        list(PAGES.values()),
+        index=list(PAGES.values()).index(st.session_state.current_page)
+    )
+    
+    if selected_page != st.session_state.current_page:
+        st.session_state.current_page = selected_page
+        st.experimental_rerun()
+
+# Gestion des différentes pages
+if st.session_state.current_page == "Accueil":
+    show_home_page()
+
+elif st.session_state.current_page == "Data Science":
+    st.header("📊 Outils Data Science")
+    st.write("Cette section est en cours de développement...")
+    # Ajouter ici le contenu pour Data Science
+
+elif st.session_state.current_page == "Gestion Énergétique":
+    st.header("⚡ Gestion Énergétique")
+    st.write("Cette section est en cours de développement...")
+    # Ajouter ici le contenu pour la Gestion Énergétique
+
+elif st.session_state.current_page == "Navier-Stokes":
+    st.header("🌊 Équations de Navier-Stokes")
+    st.write("Cette section est en cours de développement...")
+    # Ajouter ici le contenu pour Navier-Stokes
+
+elif st.session_state.current_page == "Numérisation":
+    st.header("🔢 Numérisation")
+    st.write("Cette section est en cours de développement...")
+    # Ajouter ici le contenu pour la Numérisation
+
+
+
+# Exemple pour le module Applications Laser
+elif st.session_state.current_page == "Applications Laser":
+    st.header("🔦 Applications Laser")
+    
+    app = st.selectbox("Sélectionnez l'application", ["Pertes par cavité", "Profil gaussien"])
+    
+    if app == "Pertes par cavité":
+        st.subheader("Calcul des pertes par cavité laser")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            R1 = st.number_input("R1 (réflexion M1)", min_value=0.90, max_value=0.9999, value=0.99, step=0.0001, format="%.4f")
+            R2 = st.number_input("R2 (réflexion M2)", min_value=0.90, max_value=0.9999, value=0.99, step=0.0001, format="%.4f")
+        with col2:
+            internal_loss = st.number_input("Pertes internes (fraction)", min_value=0.0, max_value=0.1, value=0.005, step=0.0001, format="%.4f")
+        
+        if st.button("Calculer les pertes"):
+            T1 = 1 - R1
+            T2 = 1 - R2
+            total_loss = T1 + T2 + 2 * internal_loss
+            
+            st.subheader("Résultats")
+            st.write(f"Transmission M1 (T1): {T1:.4f}")
+            st.write(f"Transmission M2 (T2): {T2:.4f}")
+            st.write(f"Pertes internes (par passage): {internal_loss:.4f}")
+            st.success(f"**Pertes totales (par aller-retour): {total_loss*100:.2f}%**")
+            
+            # Visualisation
+            labels = ['T1', 'T2', 'Pertes internes']
+            sizes = [T1, T2, 2*internal_loss]
+            
+            fig, ax = plt.subplots()
+            ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+            ax.axis('equal')
+            ax.set_title("Répartition des pertes")
+            st.pyplot(fig)
+    
+    elif app == "Profil gaussien":
+        st.subheader("Simulation du profil gaussien d'un faisceau laser")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            lam = st.number_input("λ (nm)", min_value=200.0, max_value=2000.0, value=532.0)
+            w0 = st.number_input("w₀ (μm)", min_value=1.0, max_value=1000.0, value=50.0)
+        with col2:
+            z = st.number_input("z (mm)", min_value=-1000.0, max_value=1000.0, value=0.0)
+            power = st.number_input("Puissance (mW)", min_value=0.01, value=10.0)
+        
+        if st.button("Afficher le profil gaussien"):
+            lam_m = lam * 1e-9
+            w0_m = w0 * 1e-6
+            z_m = z * 1e-3
+            power_w = power * 1e-3
+            
+            # Calcul des paramètres
+            zR = np.pi * w0_m**2 / lam_m   # Rayon de Rayleigh
+            wz = w0_m * np.sqrt(1 + (z_m / zR)**2)   # Taille du faisceau à z
+            
+            # Calcul de l'intensité
+            r = np.linspace(-3*wz, 3*wz, 400)   # en mètres
+            I0 = 2 * power_w / (np.pi * wz**2)
+            I = I0 * np.exp(-2 * (r**2) / (wz**2))
+            
+            # Tracé
+            fig, ax = plt.subplots()
+            ax.plot(r * 1e6, I, color="#1976D2", lw=2)
+            ax.set_title(f"Profil Gaussien à z = {z} mm")
+            ax.set_xlabel("x (μm)")
+            ax.set_ylabel("Intensité (W/m²)")
+            ax.grid(alpha=0.3)
+            st.pyplot(fig)
+            
+            # Affichage des paramètres
+            st.subheader("Paramètres du faisceau")
+            st.write(f"Taille du faisceau à z (w(z)): {wz*1e6:.2f} μm")
+            st.write(f"Rayon de Rayleigh (zR): {zR*1e3:.2f} mm")
+            st.write(f"Intensité maximale (I0): {I0:.2e} W/m²")
+
