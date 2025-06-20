@@ -1,333 +1,275 @@
-import os
-import sys
-from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize
-from PyQt5.QtGui import QFont, QPixmap, QColor, QLinearGradient, QPainter, QBrush, QIcon
-from PyQt5.QtWidgets import (
-    QMainWindow, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, 
-    QWidget, QGraphicsDropShadowEffect, QSpacerItem, QSizePolicy, 
-    QFrame, QListWidget, QListWidgetItem
+import streamlit as st
+import base64
+import time
+
+# Configuration de la page
+st.set_page_config(
+    page_title="Application de Calcul Scientifique",
+    page_icon="🔬",
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
-from PyQt5 import uic
 
-# Style CSS pour l'application
-APP_STYLE = """
-QMainWindow {
-    background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, 
-                stop:0 #0c1b33, stop:1 #1a365d);
-}
+# CSS personnalisé
+st.markdown("""
+    <style>
+        /* Fond de page */
+        [data-testid="stAppViewContainer"] {
+            background: linear-gradient(135deg, #0c1b33, #1a365d);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        /* Conteneur principal */
+        .main-container {
+            background: rgba(13, 26, 50, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(86, 180, 239, 0.2);
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        /* Titre principal */
+        .main-title {
+            font-size: 2.5rem;
+            text-align: center;
+            background: linear-gradient(to right, #56b4ef, #2ecc71);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-weight: 700;
+        }
+        
+        /* Sous-titre */
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a3c7f7;
+            text-align: center;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        /* Titres de section */
+        .section-title {
+            font-size: 2rem;
+            color: #56b4ef;
+            position: relative;
+            padding-left: 15px;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid rgba(86, 180, 239, 0.3);
+            padding-bottom: 0.5rem;
+        }
+        
+        .section-title:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10%;
+            height: 80%;
+            width: 5px;
+            background: linear-gradient(to bottom, #56b4ef, #2ecc71);
+            border-radius: 10px;
+        }
+        
+        /* Sous-titre de section */
+        .subsection-title {
+            font-size: 1.6rem;
+            color: #2ecc71;
+            margin: 1.5rem 0 1rem 0;
+            padding-left: 1rem;
+        }
+        
+        /* Éléments de la liste */
+        .tool-item {
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            background: rgba(40, 65, 105, 0.6);
+            border-radius: 12px;
+            font-size: 1.1rem;
+            border-left: 4px solid #56b4ef;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tool-item:hover {
+            transform: translateX(10px);
+            background: rgba(50, 85, 135, 0.8);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .tool-item:before {
+            content: '➤';
+            margin-right: 15px;
+            color: #2ecc71;
+            font-size: 1.2rem;
+        }
+        
+        /* Séparateur */
+        .separator {
+            height: 2px;
+            background: linear-gradient(to right, transparent, #56b4ef, transparent);
+            margin: 2.5rem 0;
+        }
+        
+        /* Bouton Quitter */
+        .stButton>button {
+            display: block;
+            width: 200px;
+            margin: 2rem auto !important;
+            padding: 15px;
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .stButton>button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(231, 76, 60, 0.5);
+        }
+        
+        /* Animation atomique */
+        .atom-container {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+        
+        /* Pied de page */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9rem;
+            color: #7a9bc8;
+            border-top: 1px solid rgba(86, 180, 239, 0.2);
+            margin-top: 2rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-title {
+                font-size: 2rem;
+            }
+            
+            .section-title {
+                font-size: 1.6rem;
+            }
+            
+            .main-container {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-/* Boutons principaux */
-.main-button {
-    background-color: rgba(40, 65, 105, 0.6);
-    color: #e6f1ff;
-    border: none;
-    border-radius: 12px;
-    padding: 15px 20px;
-    font-size: 16px;
-    font-weight: bold;
-    text-align: left;
-    border-left: 4px solid #56b4ef;
-    min-height: 60px;
-}
-
-.main-button:hover {
-    background-color: rgba(50, 85, 135, 0.8);
-    transform: translateX(10px);
-}
-
-.main-button:pressed {
-    background-color: rgba(30, 55, 95, 0.8);
-}
-
-/* Bouton Quitter */
-.quit-button {
-    background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
-                stop:0 #e74c3c, stop:1 #c0392b);
-    color: white;
-    border: none;
-    border-radius: 25px;
-    padding: 12px 30px;
-    font-size: 16px;
-    font-weight: bold;
-    min-width: 180px;
-}
-
-.quit-button:hover {
-    background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
-                stop:0 #ff6b6b, stop:1 #ff5252);
-}
-
-.quit-button:pressed {
-    background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
-                stop:0 #c0392b, stop:1 #e74c3c);
-}
-
-/* Titres */
-.title-label {
-    font-size: 36px;
-    font-weight: bold;
-    color: #56b4ef;
-    background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
-                stop:0 #56b4ef, stop:1 #2ecc71);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.subtitle-label {
-    font-size: 18px;
-    color: #a3c7f7;
-    margin-bottom: 20px;
-}
-
-.section-title {
-    font-size: 24px;
-    color: #56b4ef;
-    font-weight: bold;
-    margin-bottom: 15px;
-    padding-left: 10px;
-    border-left: 4px solid qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, 
-                stop:0 #56b4ef, stop:1 #2ecc71);
-}
-
-/* Conteneurs */
-.main-container {
-    background-color: rgba(13, 26, 50, 0.85);
-    border-radius: 20px;
-    padding: 30px;
-    border: 1px solid rgba(86, 180, 239, 0.2);
-}
-
-.separator {
-    background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
-                stop:0 transparent, stop:0.5 #56b4ef, stop:1 transparent);
-    height: 2px;
-    margin: 25px 0;
-}
+# Animation atomique (SVG animé)
+atom_svg = """
+<svg width="150" height="150" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg" style="display: block; margin: 0 auto;">
+    <!-- Noyau -->
+    <circle cx="75" cy="75" r="12" fill="#2ecc71" filter="url(#glow)" />
+    
+    <!-- Orbite 1 -->
+    <g transform="rotate(0,75,75)">
+        <animateTransform attributeName="transform" type="rotate" from="0 75 75" to="360 75 75" dur="8s" repeatCount="indefinite"/>
+        <circle cx="75" cy="75" r="30" stroke="#56b4ef" stroke-width="2" fill="none" stroke-dasharray="4 4" opacity="0.7" />
+        <circle cx="105" cy="75" r="6" fill="#56b4ef" filter="url(#glow)" />
+    </g>
+    
+    <!-- Orbite 2 -->
+    <g transform="rotate(120,75,75)">
+        <animateTransform attributeName="transform" type="rotate" from="120 75 75" to="480 75 75" dur="12s" repeatCount="indefinite"/>
+        <circle cx="75" cy="75" r="45" stroke="#56b4ef" stroke-width="2" fill="none" stroke-dasharray="4 4" opacity="0.7" />
+        <circle cx="120" cy="75" r="6" fill="#56b4ef" filter="url(#glow)" />
+    </g>
+    
+    <!-- Orbite 3 -->
+    <g transform="rotate(240,75,75)">
+        <animateTransform attributeName="transform" type="rotate" from="240 75 75" to="600 75 75" dur="15s" repeatCount="indefinite"/>
+        <circle cx="75" cy="75" r="60" stroke="#56b4ef" stroke-width="2" fill="none" stroke-dasharray="4 4" opacity="0.7" />
+        <circle cx="135" cy="75" r="6" fill="#56b4ef" filter="url(#glow)" />
+    </g>
+    
+    <!-- Effet de lueur -->
+    <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+</svg>
 """
 
-class AtomAnimation(QLabel):
-    """Widget personnalisé pour l'animation atomique"""
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFixedSize(150, 150)
-        self.angle = 0
-        self.timer_id = self.startTimer(50)  # Mise à jour toutes les 50ms
-        
-    def timerEvent(self, event):
-        self.angle = (self.angle + 2) % 360
-        self.update()
-        
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        
-        # Dessiner le noyau
-        painter.setBrush(QBrush(QColor(46, 204, 113)))
-        painter.setPen(Qt.NoPen)
-        painter.drawEllipse(65, 65, 20, 20)
-        
-        # Dessiner les orbites
-        painter.setPen(QPen(QColor(86, 180, 239, 150), 2))
-        painter.setBrush(Qt.NoBrush)
-        
-        # Orbite 1
-        painter.drawEllipse(35, 35, 80, 80)
-        painter.setBrush(QBrush(QColor(86, 180, 239)))
-        x1 = 75 + 40 * (1 - abs(1 - 2 * abs(self.angle % 360 - 0) / 180))
-        y1 = 75 + 40 * (1 - abs(1 - 2 * abs((self.angle + 90) % 360 - 0) / 180))
-        painter.drawEllipse(int(x1 - 5), int(y1 - 5), 10, 10)
-        
-        # Orbite 2
-        painter.drawEllipse(25, 25, 100, 100)
-        x2 = 75 + 50 * (1 - abs(1 - 2 * abs((self.angle + 120) % 360 - 0) / 180))
-        y2 = 75 + 50 * (1 - abs(1 - 2 * abs((self.angle + 210) % 360 - 0) / 180))
-        painter.drawEllipse(int(x2 - 5), int(y2 - 5), 10, 10)
-        
-        # Orbite 3
-        painter.drawEllipse(15, 15, 120, 120)
-        x3 = 75 + 60 * (1 - abs(1 - 2 * abs((self.angle + 240) % 360 - 0) / 180))
-        y3 = 75 + 60 * (1 - abs(1 - 2 * abs((self.angle + 330) % 360 - 0) / 180))
-        painter.drawEllipse(int(x3 - 5), int(y3 - 5), 10, 10)
-        
-        painter.end()
+# Fonction pour simuler la fermeture de l'application
+def close_app():
+    with st.spinner("Fermeture en cours..."):
+        progress_bar = st.progress(0)
+        for percent_complete in range(100):
+            time.sleep(0.01)
+            progress_bar.progress(percent_complete + 1)
+        st.success("Application fermée avec succès!")
+        st.balloons()
+        st.stop()
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Application de Calcul Scientifique")
-        self.setMinimumSize(900, 700)
-        self.setStyleSheet(APP_STYLE)
-        
-        # Widget central et layout principal
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setAlignment(Qt.AlignCenter)
-        main_layout.setContentsMargins(30, 30, 30, 30)
-        
-        # Conteneur principal
-        container = QFrame()
-        container.setObjectName("main-container")
-        container_layout = QVBoxLayout(container)
-        container_layout.setContentsMargins(40, 40, 40, 40)
-        container_layout.setSpacing(20)
-        
-        # Titre principal
-        title_label = QLabel("Bienvenue dans l'Application de Calcul Scientifique")
-        title_label.setObjectName("title-label")
-        title_label.setAlignment(Qt.AlignCenter)
-        title_label.setFont(QFont("Segoe UI", 24, QFont.Bold))
-        
-        # Sous-titre
-        subtitle_label = QLabel("Plateforme avancée pour la modélisation, la simulation et l'analyse de données scientifiques complexes")
-        subtitle_label.setObjectName("subtitle-label")
-        subtitle_label.setAlignment(Qt.AlignCenter)
-        subtitle_label.setFont(QFont("Segoe UI", 12))
-        subtitle_label.setWordWrap(True)
-        
-        # Animation atomique
-        atom_animation = AtomAnimation()
-        atom_animation.setAlignment(Qt.AlignCenter)
-        
-        # Section Outils Data Science
-        section_title = QLabel("Outils Data Science")
-        section_title.setObjectName("section-title")
-        section_title.setFont(QFont("Segoe UI", 16, QFont.Bold))
-        
-        # Boutons d'outils
-        tools_layout = QVBoxLayout()
-        tools_layout.setSpacing(15)
-        
-        # Création des boutons
-        self.data_science_button = self.create_tool_button("Data Science", "📊")
-        self.energy_button = self.create_tool_button("Gestion Énergétique", "⚡")
-        self.laser_button = self.create_tool_button("Simulation Laser", "🔦")
-        self.navier_stokes_button = self.create_tool_button("Équations Navier-Stokes", "🌊")
-        self.numerisation_button = self.create_tool_button("Numérisation", "🔢")
-        
-        # Ajout des boutons au layout
-        tools_layout.addWidget(self.data_science_button)
-        tools_layout.addWidget(self.energy_button)
-        tools_layout.addWidget(self.laser_button)
-        tools_layout.addWidget(self.navier_stokes_button)
-        tools_layout.addWidget(self.numerisation_button)
-        
-        # Séparateur
-        separator = QFrame()
-        separator.setObjectName("separator")
-        separator.setFixedHeight(2)
-        
-        # Bouton Quitter
-        quit_button = QPushButton("Quitter l'Application")
-        quit_button.setObjectName("quit-button")
-        quit_button.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        quit_button.setCursor(Qt.PointingHandCursor)
-        quit_button.clicked.connect(self.close)
-        
-        # Ajout d'un effet d'ombre
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(20)
-        shadow.setColor(QColor(0, 0, 0, 100))
-        shadow.setOffset(0, 5)
-        quit_button.setGraphicsEffect(shadow)
-        
-        # Ajout des widgets au conteneur
-        container_layout.addWidget(title_label)
-        container_layout.addWidget(subtitle_label)
-        container_layout.addWidget(atom_animation, 0, Qt.AlignCenter)
-        container_layout.addSpacing(20)
-        container_layout.addWidget(section_title)
-        container_layout.addLayout(tools_layout)
-        container_layout.addWidget(separator)
-        container_layout.addWidget(quit_button, 0, Qt.AlignCenter)
-        
-        # Ajout du conteneur au layout principal
-        main_layout.addWidget(container)
-        
-        # Connexion des signaux
-        self.connect_buttons()
-        
-        # Initialisation des fenêtres filles (à compléter avec vos classes)
-        self.numeration_window = None
-        self.laser_window = None
-        self.ns_interface = None
-        self.energy_window = None
-        self.data_science_window = None
-        
-    def create_tool_button(self, text, icon):
-        """Crée un bouton d'outil avec une icône et un texte"""
-        button = QPushButton(f"  {icon}  {text}")
-        button.setObjectName("main-button")
-        button.setFont(QFont("Segoe UI", 12))
-        button.setCursor(Qt.PointingHandCursor)
-        
-        # Effet d'ombre
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(10)
-        shadow.setColor(QColor(0, 0, 0, 80))
-        shadow.setOffset(0, 3)
-        button.setGraphicsEffect(shadow)
-        
-        return button
-        
-    def connect_buttons(self):
-        """Connecte les boutons à leurs slots"""
-        self.data_science_button.clicked.connect(self.open_data_science_window)
-        self.energy_button.clicked.connect(self.open_energy_window)
-        self.laser_button.clicked.connect(self.open_laser_window)
-        self.navier_stokes_button.clicked.connect(self.open_navier_stokes_window)
-        self.numerisation_button.clicked.connect(self.open_numeration_window)
-        
-    def open_numeration_window(self):
-        if not self.numeration_window:
-            # À remplacer par votre classe réelle
-            self.numeration_window = QWidget()  
-            self.numeration_window.setWindowTitle("Numérisation")
-            self.numeration_window.resize(800, 600)
-        self.numeration_window.show()
-        
-    def open_laser_window(self):
-        if not self.laser_window:
-            # À remplacer par votre classe réelle
-            self.laser_window = QWidget()  
-            self.laser_window.setWindowTitle("Simulation Laser")
-            self.laser_window.resize(800, 600)
-        self.laser_window.show()
-        
-    def open_energy_window(self):
-        if not self.energy_window:
-            # À remplacer par votre classe réelle
-            self.energy_window = QWidget()  
-            self.energy_window.setWindowTitle("Gestion Énergétique")
-            self.energy_window.resize(800, 600)
-        self.energy_window.show()
-        
-    def open_data_science_window(self):
-        if not self.data_science_window:
-            # À remplacer par votre classe réelle
-            self.data_science_window = QWidget()  
-            self.data_science_window.setWindowTitle("Data Science")
-            self.data_science_window.resize(800, 600)
-        self.data_science_window.show()
-        
-    def open_navier_stokes_window(self):
-        if not self.ns_interface:
-            
-            self.ns_interface = QWidget()  
-            self.ns_interface.setWindowTitle("Équations Navier-Stokes")
-            self.ns_interface.resize(800, 600)
-        self.ns_interface.show()
+# Structure de la page
+with st.container():
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    
+    # En-tête
+    st.markdown('<h1 class="main-title">Bienvenue dans l\'Application de Calcul Scientifique</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">Plateforme avancée pour la modélisation, la simulation et l\'analyse de données scientifiques complexes</p>', unsafe_allow_html=True)
+    
+    # Animation atomique
+    st.markdown('<div class="atom-container">', unsafe_allow_html=True)
+    st.markdown(atom_svg, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Section Outils Data Science
+    st.markdown('<h2 class="section-title">Outils Data Science</h2>', unsafe_allow_html=True)
+    
+    # Sous-section Gestion Énergétique
+    st.markdown('<h3 class="subsection-title">Gestion Énergétique</h3>', unsafe_allow_html=True)
+    
+    # Liste des outils
+    tools = [
+        "Simulation: Laser",
+        "Equations: Navier-Stokes",
+        "Numérisation"
+    ]
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")
+    for tool in tools:
+        st.markdown(f'<div class="tool-item">{tool}</div>', unsafe_allow_html=True)
     
-    # Configuration de la police par défaut
-    font = QFont("Segoe UI", 10)
-    app.setFont(font)
+    # Séparateur
+    st.markdown('<div class="separator"></div>', unsafe_allow_html=True)
     
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+    # Bouton Quitter
+    if st.button("Quitter l'Application", key="quit_button"):
+        close_app()
+    
+    # Pied de page
+    st.markdown("""
+        <div class="footer">
+            Application de Calcul Scientifique &copy; 2025 | Tous droits réservés
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # Fermeture du conteneur principal
