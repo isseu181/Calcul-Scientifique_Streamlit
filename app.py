@@ -2,13 +2,12 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.integrate import quad, solve_ivp
+from scipy.integrate import quad
 from scipy.interpolate import interp1d
 from scipy.signal import TransferFunction, step, bode
 from scipy.optimize import fsolve
 import pulp
 import sympy as sp
-from sympy import symbols, integrate, pi, cos, sin, simplify, sympify, lambdify
 
 st.set_page_config(page_title="CalculLAB Web", layout="centered", page_icon="🔬")
 
@@ -98,13 +97,11 @@ def show_back_button():
                  type="secondary", 
                  help="Retourner à la page d'accueil"):
         st.session_state.current_page = "Accueil"
-        st.experimental_rerun()
 
 # Data Science
 def data_science_page():
     st.header("📊 Outils Data Science")
     show_back_button()
-    st.write("Cette section est en cours de développement...")
     
     # Simulation Data Science
     st.subheader("Simulation d'analyse de données")
