@@ -1,6 +1,6 @@
 import streamlit as st
-import base64
-import time
+from streamlit_extras.colored_header import colored_header
+from streamlit_extras.stylable_container import stylable_container
 
 # Configuration de la page
 st.set_page_config(
@@ -16,10 +16,6 @@ st.markdown("""
         /* Fond de page */
         [data-testid="stAppViewContainer"] {
             background: linear-gradient(135deg, #0c1b33, #1a365d);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             padding: 2rem;
         }
         
@@ -32,13 +28,12 @@ st.markdown("""
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(86, 180, 239, 0.2);
             max-width: 900px;
-            width: 100%;
             margin: 0 auto;
         }
         
         /* Titre principal */
         .main-title {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             text-align: center;
             background: linear-gradient(to right, #56b4ef, #2ecc71);
             -webkit-background-clip: text;
@@ -55,6 +50,9 @@ st.markdown("""
             color: #a3c7f7;
             text-align: center;
             margin-bottom: 2rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
             line-height: 1.6;
         }
         
@@ -121,10 +119,10 @@ st.markdown("""
         }
         
         /* Bouton Quitter */
-        .stButton>button {
+        .quit-btn {
             display: block;
             width: 200px;
-            margin: 2rem auto !important;
+            margin: 2rem auto;
             padding: 15px;
             background: linear-gradient(to right, #e74c3c, #c0392b);
             color: white;
@@ -139,7 +137,7 @@ st.markdown("""
             transition: all 0.3s ease;
         }
         
-        .stButton>button:hover {
+        .quit-btn:hover {
             transform: translateY(-3px);
             box-shadow: 0 7px 20px rgba(231, 76, 60, 0.5);
         }
@@ -164,11 +162,11 @@ st.markdown("""
         /* Responsive */
         @media (max-width: 768px) {
             .main-title {
-                font-size: 2rem;
+                font-size: 2.2rem;
             }
             
             .section-title {
-                font-size: 1.6rem;
+                font-size: 1.8rem;
             }
             
             .main-container {
@@ -218,17 +216,6 @@ atom_svg = """
 </svg>
 """
 
-# Fonction pour simuler la fermeture de l'application
-def close_app():
-    with st.spinner("Fermeture en cours..."):
-        progress_bar = st.progress(0)
-        for percent_complete in range(100):
-            time.sleep(0.01)
-            progress_bar.progress(percent_complete + 1)
-        st.success("Application fermée avec succès!")
-        st.balloons()
-        st.stop()
-
 # Structure de la page
 with st.container():
     st.markdown('<div class="main-container">', unsafe_allow_html=True)
@@ -262,8 +249,12 @@ with st.container():
     st.markdown('<div class="separator"></div>', unsafe_allow_html=True)
     
     # Bouton Quitter
-    if st.button("Quitter l'Application", key="quit_button"):
-        close_app()
+    if st.button("Quitter l'Application", key="quit_button", use_container_width=True):
+        with st.spinner("Fermeture en cours..."):
+            # Animation de fermeture
+            st.balloons()
+            st.success("Application fermée avec succès!")
+            st.stop()
     
     # Pied de page
     st.markdown("""
