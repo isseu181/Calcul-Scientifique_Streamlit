@@ -60,6 +60,20 @@ def show_home_page():
     .back-button {
         background-color: #6c757d !important;
     }
+    .laser-tab {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .result-box {
+        background-color: #e9f7ef;
+        border-left: 4px solid #28a745;
+        padding: 15px;
+        border-radius: 0 8px 8px 0;
+        margin-top: 20px;
+    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -246,42 +260,76 @@ def laser_applications_page():
     st.header("🔦 Applications Laser")
     show_back_button()
     
+    st.markdown("""
+    <style>
+    .laser-tab {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .result-box {
+        background-color: #e9f7ef;
+        border-left: 4px solid #28a745;
+        padding: 15px;
+        border-radius: 0 8px 8px 0;
+        margin-top: 20px;
+    }
+    .param-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     app = st.selectbox("Sélectionnez l'application", ["Pertes par cavité", "Profil gaussien"])
     
     if app == "Pertes par cavité":
         st.subheader("Calcul des pertes par cavité laser")
+        st.markdown('<div class="laser-tab">', unsafe_allow_html=True)
         
+        st.markdown('<div class="param-grid">', unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
             R1 = st.number_input("R1 (réflexion M1)", min_value=0.90, max_value=0.9999, value=0.99, step=0.0001, format="%.4f")
             R2 = st.number_input("R2 (réflexion M2)", min_value=0.90, max_value=0.9999, value=0.99, step=0.0001, format="%.4f")
         with col2:
             internal_loss = st.number_input("Pertes internes (fraction)", min_value=0.0, max_value=0.1, value=0.005, step=0.0001, format="%.4f")
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        if st.button("Calculer les pertes"):
+        if st.button("Calculer les pertes", key="losses_calc"):
             T1 = 1 - R1
             T2 = 1 - R2
             total_loss = T1 + T2 + 2 * internal_loss
             
+            st.markdown('<div class="result-box">', unsafe_allow_html=True)
             st.subheader("Résultats")
-            st.write(f"Transmission M1 (T1): {T1:.4f}")
-            st.write(f"Transmission M2 (T2): {T2:.4f}")
-            st.write(f"Pertes internes (par passage): {internal_loss:.4f}")
+            st.write(f"**Transmission M1 (T1):** {T1:.4f}")
+            st.write(f"**Transmission M2 (T2):** {T2:.4f}")
+            st.write(f"**Pertes internes (par passage):** {internal_loss:.4f}")
             st.success(f"**Pertes totales (par aller-retour): {total_loss*100:.2f}%**")
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # Visualisation
             labels = ['T1', 'T2', 'Pertes internes']
             sizes = [T1, T2, 2*internal_loss]
+            colors = ['#ff9999','#66b3ff','#99ff99']
             
             fig, ax = plt.subplots()
-            ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+            ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors)
             ax.axis('equal')
             ax.set_title("Répartition des pertes")
             st.pyplot(fig)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
     elif app == "Profil gaussien":
         st.subheader("Simulation du profil gaussien d'un faisceau laser")
+        st.markdown('<div class="laser-tab">', unsafe_allow_html=True)
         
+        st.markdown('<div class="param-grid">', unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
             lam = st.number_input("λ (nm)", min_value=200.0, max_value=2000.0, value=532.0)
@@ -289,8 +337,9 @@ def laser_applications_page():
         with col2:
             z = st.number_input("z (mm)", min_value=-1000.0, max_value=1000.0, value=0.0)
             power = st.number_input("Puissance (mW)", min_value=0.01, value=10.0)
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        if st.button("Afficher le profil gaussien"):
+        if st.button("Afficher le profil gaussien", key="gaussian_calc"):
             lam_m = lam * 1e-9
             w0_m = w0 * 1e-6
             z_m = z * 1e-3
@@ -306,19 +355,23 @@ def laser_applications_page():
             I = I0 * np.exp(-2 * (r**2) / (wz**2))
             
             # Tracé
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(8, 4))
             ax.plot(r * 1e6, I, color="#1976D2", lw=2)
-            ax.set_title(f"Profil Gaussien à z = {z} mm")
-            ax.set_xlabel("x (μm)")
-            ax.set_ylabel("Intensité (W/m²)")
+            ax.set_title(f"Profil Gaussien à z = {z} mm", fontsize=14)
+            ax.set_xlabel("x (μm)", fontsize=12)
+            ax.set_ylabel("Intensité (W/m²)", fontsize=12)
             ax.grid(alpha=0.3)
             st.pyplot(fig)
             
             # Affichage des paramètres
+            st.markdown('<div class="result-box">', unsafe_allow_html=True)
             st.subheader("Paramètres du faisceau")
-            st.write(f"Taille du faisceau à z (w(z)): {wz*1e6:.2f} μm")
-            st.write(f"Rayon de Rayleigh (zR): {zR*1e3:.2f} mm")
-            st.write(f"Intensité maximale (I0): {I0:.2e} W/m²")
+            st.write(f"**Taille du faisceau à z (w(z)):** {wz*1e6:.2f} μm")
+            st.write(f"**Rayon de Rayleigh (zR):** {zR*1e3:.2f} mm")
+            st.write(f"**Intensité maximale (I0):** {I0:.2e} W/m²")
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # Gestion de la navigation
 if st.session_state.current_page == "Accueil":
