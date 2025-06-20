@@ -15,3 +15,4 @@ PyQt5                # Création d’interfaces graphiques (GUI) avec Qt
 requests             # Requêtes HTTP simples et efficaces
 #PyQt5-tools          # Outils complémentaires pour PyQt5 (ex: Qt Designer)
 streamlit          # Création d'applications web interactives pour la data science  
+plotly
