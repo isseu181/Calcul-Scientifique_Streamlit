@@ -4,6 +4,12 @@ import numpy as np
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
+from interface import (
+    data_science_interface,
+    energy_interface,
+    laser_interface,
+    navier_stokes_interface
+)
 
 st.set_page_config(page_title="CalculLAB Web", layout="centered")
 st.title("🔬 CalculLAB – Application Scientifique en Ligne")
